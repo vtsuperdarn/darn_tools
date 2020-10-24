@@ -29,10 +29,11 @@ Based on J.M. Ruohoniemi's geopack
 Based on R.J. Barnes radar.pro
 Updates based on G. Chishams cnvtcoord_vhm.c
 
+
 Copied from DaViTPy
 """
 import logging
-import numpy
+import numpy as np
 
 def geodToGeoc(lat, lon, inverse=False):
     """Converts position from geodetic to geocentric or vice-versa.
@@ -61,14 +62,14 @@ def geodToGeoc(lat, lon, inverse=False):
     
     if not inverse:
         # geodetic into geocentric
-        lat_out = numpy.degrees(numpy.arctan(b**2 / a**2 * numpy.tan(numpy.radians(lat))))
+        lat_out = np.degrees(np.arctan(b**2 / a**2 * np.tan(np.radians(lat))))
         lon_out = lon
     else:
         # geocentric into geodetic
-        lat_out = numpy.degrees(numpy.arctan(a**2 / b**2 * numpy.tan(numpy.radians(lat))))
+        lat_out = np.degrees(np.arctan(a**2 / b**2 * np.tan(np.radians(lat))))
         lon_out = lon
         
-    rade = a / numpy.sqrt( 1. + e2 * numpy.sin(numpy.radians(lat_out))**2)
+    rade = a / np.sqrt( 1. + e2 * np.sin(np.radians(lat_out))**2)
         
     return lat_out, lon_out, rade
 
@@ -102,46 +103,46 @@ def geodToGeocAzEl(lat, lon, az, el, inverse=False):
     el : float
         elevation [degree]
     """
-    taz = numpy.radians(az)
-    tel = numpy.radians(el)
+    taz = np.radians(az)
+    tel = np.radians(el)
     
     # In this transformation x is east, y is north and z is up
     if not inverse:
         # Calculate deviation from vertical (in radians)
         (geocLat, geocLon, Re) = geodToGeoc(lat, lon)
-        devH = numpy.radians(lat - geocLat)
+        devH = np.radians(lat - geocLat)
         # Calculate cartesian coordinated in local system
-        kxGD = numpy.cos(tel) * numpy.sin(taz)
-        kyGD = numpy.cos(tel) * numpy.cos(taz)
-        kzGD = numpy.sin(tel)
+        kxGD = np.cos(tel) * np.sin(taz)
+        kyGD = np.cos(tel) * np.cos(taz)
+        kzGD = np.sin(tel)
         # Now rotate system about the x axis to align local vertical vector
         # with Earth radial vector
         kxGC = kxGD
-        kyGC = kyGD * numpy.cos(devH) + kzGD * numpy.sin(devH)
-        kzGC = -kyGD * numpy.sin(devH) + kzGD * numpy.cos(devH)
+        kyGC = kyGD * np.cos(devH) + kzGD * np.sin(devH)
+        kzGC = -kyGD * np.sin(devH) + kzGD * np.cos(devH)
         # Finally calculate the new azimuth and elevation in the geocentric
         # frame
-        azOut = numpy.degrees(numpy.arctan2(kxGC, kyGC))
-        elOut = numpy.degrees(numpy.arctan(kzGC / numpy.sqrt(kxGC**2 + kyGC**2)))
+        azOut = np.degrees(np.arctan2(kxGC, kyGC))
+        elOut = np.degrees(np.arctan(kzGC / np.sqrt(kxGC**2 + kyGC**2)))
         latOut = geocLat
         lonOut = geocLon
     else:
         # Calculate deviation from vertical (in radians)
         (geodLat, geodLon, Re) = geodToGeoc(lat, lon, inverse=True)
-        devH = numpy.radians(geodLat - lat)
+        devH = np.radians(geodLat - lat)
         # Calculate cartesian coordinated in geocentric system
-        kxGC = numpy.cos(tel) * numpy.sin(taz)
-        kyGC = numpy.cos(tel) * numpy.cos(taz)
-        kzGC = numpy.sin(tel)
+        kxGC = np.cos(tel) * np.sin(taz)
+        kyGC = np.cos(tel) * np.cos(taz)
+        kzGC = np.sin(tel)
         # Now rotate system about the x axis to align local vertical vector
         # with Earth radial vector
         kxGD = kxGC
-        kyGD = kyGC * numpy.cos(-devH) + kzGC * numpy.sin(-devH)
-        kzGD = -kyGC * numpy.sin(-devH) + kzGC * numpy.cos(-devH)
+        kyGD = kyGC * np.cos(-devH) + kzGC * np.sin(-devH)
+        kzGD = -kyGC * np.sin(-devH) + kzGC * np.cos(-devH)
         # Finally calculate the new azimuth and elevation in the geocentric
         # frame
-        azOut = numpy.degrees(numpy.arctan2(kxGD, kyGD))
-        elOut = numpy.degrees(numpy.arctan(kzGD / numpy.sqrt(kxGD**2 + kyGD**2)))
+        azOut = np.degrees(np.arctan2(kxGD, kyGD))
+        elOut = np.degrees(np.arctan(kzGD / np.sqrt(kxGD**2 + kyGD**2)))
         latOut = geodLat
         lonOut = geodLon
     
@@ -183,15 +184,15 @@ def gspToGcar(xin, yin, zin, inverse=False):
 
     if not inverse:
         # Global spherical to global cartesian
-        xout = zin * numpy.cos(numpy.radians(xin)) * numpy.cos(numpy.radians(yin))
-        yout = zin * numpy.cos(numpy.radians(xin)) * numpy.sin(numpy.radians(yin))
-        zout = zin * numpy.sin(numpy.radians(xin))
+        xout = zin * np.cos(np.radians(xin)) * np.cos(np.radians(yin))
+        yout = zin * np.cos(np.radians(xin)) * np.sin(np.radians(yin))
+        zout = zin * np.sin(np.radians(xin))
     else:
         # Calculate latitude (xout), longitude (yout) and distance from center
         # of the Earth (zout)
-        zout = numpy.sqrt(xin**2 + yin**2 + zin**2)
-        xout = numpy.degrees(numpy.arcsin(zin / zout))
-        yout = numpy.degrees(numpy.arctan2(yin, xin))
+        zout = np.sqrt(xin**2 + yin**2 + zin**2)
+        xout = np.degrees(np.arcsin(zin / zout))
+        yout = np.degrees(np.arctan2(yin, xin))
         
     return xout, yout, zout
 
@@ -247,26 +248,26 @@ def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
         ty = Y - goY
         tz = Z - goZ
         # Then, rotate about global-Z to get local-X pointing eastward
-        rot = -numpy.radians(lon + 90.0)
-        sx = tx * numpy.cos(rot) - ty * numpy.sin(rot)
-        sy = tx * numpy.sin(rot) + ty * numpy.cos(rot)
+        rot = -np.radians(lon + 90.0)
+        sx = tx * np.cos(rot) - ty * np.sin(rot)
+        sy = tx * np.sin(rot) + ty * np.cos(rot)
         sz = tz
         # Finally, rotate about X axis to align Z with upward direction
-        rot = -numpy.radians(90.0 - lat)
+        rot = -np.radians(90.0 - lat)
         xOut = sx
-        yOut = sy * numpy.cos(rot) - sz * numpy.sin(rot)
-        zOut = sy * numpy.sin(rot) + sz * numpy.cos(rot)
+        yOut = sy * np.cos(rot) - sz * np.sin(rot)
+        zOut = sy * np.sin(rot) + sz * np.cos(rot)
     else:
         # First rotate about X axis to align Z with Earth rotational axis
         # direction
-        rot = numpy.radians(90.0 - lat)
+        rot = np.radians(90.0 - lat)
         sx = X
-        sy = Y * numpy.cos(rot) - Z * numpy.sin(rot)
-        sz = Y * numpy.sin(rot) + Z * numpy.cos(rot)
+        sy = Y * np.cos(rot) - Z * np.sin(rot)
+        sz = Y * np.sin(rot) + Z * np.cos(rot)
         # Rotate about global-Z to get global-X pointing to the prime meridian
-        rot = numpy.radians(lon + 90.)
-        xOut = sx * numpy.cos(rot) - sy * numpy.sin(rot)
-        yOut = sx * numpy.sin(rot) + sy * numpy.cos(rot)
+        rot = np.radians(lon + 90.)
+        xOut = sx * np.cos(rot) - sy * np.sin(rot)
+        yOut = sx * np.sin(rot) + sy * np.cos(rot)
         zOut = sz
         # Finally, translate local position to global origin
         xOut = xOut + goX
@@ -316,14 +317,14 @@ def lspToLcar(X, Y, Z, inverse=False):
         r = Z
         el = Y
         az = X
-        xOut = r * numpy.cos(numpy.radians(el)) * numpy.sin(numpy.radians(az))
-        yOut = r * numpy.cos(numpy.radians(el)) * numpy.cos(numpy.radians(az))
-        zOut = r * numpy.sin(numpy.radians(el))
+        xOut = r * np.cos(np.radians(el)) * np.sin(np.radians(az))
+        yOut = r * np.cos(np.radians(el)) * np.cos(np.radians(az))
+        zOut = r * np.sin(np.radians(el))
     else:
         # local cartesian into local spherical
-        r = numpy.sqrt(X**2 + Y**2 + Z**2)
-        el = numpy.degrees(numpy.arcsin(Z / r))
-        az = numpy.degrees(numpy.arctan2(X, Y))
+        r = np.sqrt(X**2 + Y**2 + Z**2)
+        el = np.degrees(np.arcsin(Z / r))
+        az = np.degrees(np.arctan2(X, Y))
         xOut = az
         yOut = el
         zOut = r
@@ -406,7 +407,7 @@ def calcDistPnt(origLat, origLon, origAlt, dist=None, el=None, az=None,
         # convert pointing azimuth and elevation to geodetic
         (lat, lon, Re, az, el) = geodToGeocAzEl(gcLat, gcLon, gaz, gel,
                                                 inverse=True)
-        dist = numpy.sqrt(dX**2 + dY**2 + dZ**2)
+        dist = np.sqrt(dX**2 + dY**2 + dZ**2)
 
     elif distLat is None and distLon is None and distAlt is None:
         assert None not in [dist, el, az], logging.error('Not enough keywords.')
@@ -457,11 +458,11 @@ def calcDistPnt(origLat, origLon, origAlt, dist=None, el=None, az=None,
         (gcLat, gcLon, origRe, gaz, gel) = geodToGeocAzEl(origLat, origLon, az,
                                                           el)
         # calculate altitude and distance
-        theta = numpy.arccos((pdX * pX + pdY * pY + pdZ * pZ) / Dref**2)
-        distAlt = Dref * (numpy.cos(numpy.radians(gel)) /
-                          numpy.cos(theta + numpy.radians(gel)) - 1.0)
+        theta = np.arccos((pdX * pX + pdY * pY + pdZ * pZ) / Dref**2)
+        distAlt = Dref * (np.cos(np.radians(gel)) /
+                          np.cos(theta + np.radians(gel)) - 1.0)
         distAlt -= distRe - origRe
-        dist = Dref * numpy.sin(theta) / numpy.cos(theta + numpy.radians(gel))
+        dist = Dref * np.sin(theta) / np.cos(theta + np.radians(gel))
 
     elif distLat is None and distLon is None and dist is None:
         assert None not in [distAlt, el, az], \
@@ -472,13 +473,13 @@ def calcDistPnt(origLat, origLon, origAlt, dist=None, el=None, az=None,
                                                           el)
         
         # Calculate angles
-        alpha = numpy.arcsin((origRe + origAlt) * numpy.cos(numpy.radians(gel)) /
+        alpha = np.arcsin((origRe + origAlt) * np.cos(np.radians(gel)) /
                           (origRe + distAlt))
-        theta = numpy.pi / 2.0 - alpha - numpy.radians(gel)
+        theta = np.pi / 2.0 - alpha - np.radians(gel)
         
         # calculate distance
-        dist = numpy.sqrt((origRe + origAlt)**2 + (origRe + distAlt)**2 - 2.0 *
-                       (origRe + distAlt) * (origRe + origAlt) * numpy.cos(theta))
+        dist = np.sqrt((origRe + origAlt)**2 + (origRe + distAlt)**2 - 2.0 *
+                       (origRe + distAlt) * (origRe + origAlt) * np.cos(theta))
         
         # convert pointing direction from local spherical to local cartesian
         (pX, pY, pZ) = lspToLcar(gaz, gel, dist)
@@ -532,25 +533,25 @@ def greatCircleMove(origLat, origLon, dist, az, alt=0.0, Re=6371.0):
     """
     Re_tot = (Re + alt) * 1.0e3
     dist = dist * 1.0e3
-    lat1 = numpy.radians(origLat) 
-    lon1 = numpy.radians(origLon)
-    az = numpy.radians(az)
+    lat1 = np.radians(origLat) 
+    lon1 = np.radians(origLon)
+    az = np.radians(az)
     
-    lat2 = numpy.arcsin(numpy.sin(lat1) * numpy.cos(dist / Re_tot) +
-                     numpy.cos(lat1) * numpy.sin(dist / Re_tot) * numpy.cos(az))
-    lon2 = lon1 + numpy.arctan2(numpy.sin(az) * numpy.sin(dist / Re_tot) * numpy.cos(lat1),
-                             numpy.cos(dist / Re_tot)
-                             - numpy.sin(lat1) * numpy.sin(lat2))
+    lat2 = np.arcsin(np.sin(lat1) * np.cos(dist / Re_tot) +
+                     np.cos(lat1) * np.sin(dist / Re_tot) * np.cos(az))
+    lon2 = lon1 + np.arctan2(np.sin(az) * np.sin(dist / Re_tot) * np.cos(lat1),
+                             np.cos(dist / Re_tot)
+                             - np.sin(lat1) * np.sin(lat2))
 
     # Convert everything to numpy arrays to make selective processing easier.
-    ret_lat = numpy.degrees(lat2)
-    ret_lon = numpy.degrees(lon2)
+    ret_lat = np.degrees(lat2)
+    ret_lon = np.degrees(lon2)
     
-    ret_lat = numpy.array(ret_lat)
+    ret_lat = np.array(ret_lat)
     if ret_lat.shape == ():
         ret_lat.shape = (1,)
 
-    ret_lon = numpy.array(ret_lon)
+    ret_lon = np.array(ret_lon)
     if ret_lon.shape == ():
         ret_lon.shape = (1,)
 
@@ -581,15 +582,15 @@ def greatCircleAzm(lat1, lon1, lat2, lon2):
     azm : float
         azimuth [deg]
     """
-    lat1 = numpy.radians(lat1)
-    lon1 = numpy.radians(lon1)
-    lat2 = numpy.radians(lat2)
-    lon2 = numpy.radians(lon2)
+    lat1 = np.radians(lat1)
+    lon1 = np.radians(lon1)
+    lat2 = np.radians(lat2)
+    lon2 = np.radians(lon2)
     
     dlon = lon2 - lon1
-    y = numpy.sin(dlon) * numpy.cos(lat2)
-    x = numpy.cos(lat1) * numpy.sin(lat2) - numpy.sin(lat1) * numpy.cos(lat2) * numpy.cos(dlon)
-    azm = numpy.degrees(numpy.arctan2(y,x))
+    y = np.sin(dlon) * np.cos(lat2)
+    x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(dlon)
+    azm = np.degrees(np.arctan2(y,x))
 
     return azm
 
@@ -612,14 +613,14 @@ def greatCircleDist(lat1, lon1, lat2, lon2):
     radDist : float
         distance [radians]
     """
-    lat1 = numpy.radians(lat1)
-    lon1 = numpy.radians(lon1)
-    lat2 = numpy.radians(lat2)
-    lon2 = numpy.radians(lon2)
+    lat1 = np.radians(lat1)
+    lon1 = np.radians(lon1)
+    lat2 = np.radians(lat2)
+    lon2 = np.radians(lon2)
 
     dlat = (lat2 - lat1) / 2.0
     dlon = (lon2 - lon1) / 2.0
-    a = numpy.sin(dlat)**2 + numpy.cos(lat1) * numpy.cos(lat2) * numpy.sin(dlon)**2
-    radDist = 2.0 * numpy.arctan2(numpy.sqrt(a), numpy.sqrt(1.0 - a))
+    a = np.sin(dlat)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon)**2
+    radDist = 2.0 * np.arctan2(np.sqrt(a), np.sqrt(1.0 - a))
 
     return radDist
