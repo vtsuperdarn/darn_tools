@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+
+"""get_sd_data.py: module is dedicated to fetch fitacf data from files."""
+
+__author__ = "Kunduri, B.; Chakraborty, S."
+__copyright__ = "Copyright 2020, SuperDARN@VT"
+__credits__ = []
+__license__ = "MIT"
+__version__ = "1.0."
+__maintainer__ = "Kunduri, B.; Chakraborty, S."
+__email__ = "shibaji7@vt.edu"
+__status__ = "Research"
+
 # standard libs
 import bz2
 import glob
@@ -16,102 +29,76 @@ import pandas
 import numpy
 # plotting libs
 
-def _create_files(reg_ex, start, end):
-    """
-    Create file names from date and radar code
-    """
-    files = []
-    days = (end - start).days + 1
-    ent = -1
-    for d in range(-1,days):
-        e = start + datetime.timedelta(days=d)
-        fnames = glob.glob(reg_ex.format(year=e.year) + e.strftime("%Y%m%d") + "*")
-        fnames.sort()
-        for fname in fnames:
-            tm = fname.split(".")[1]
-            sc = fname.split(".")[2]
-            dus = datetime.datetime.strptime(fname.split(".")[0].split("/")[-1] + tm + sc, "%Y%m%d%H%M%S")
-            due = dus + datetime.timedelta(hours=2)
-            if (ent == -1) and (dus <= start <= due): ent = 0
-            if ent == 0: files.append(fname)
-            if (ent == 0) and (dus <= end <= due): ent = -1
-    return files
+from get_fit_data import FetchData
 
-def print_fit_record(\
-         start_date, end_date, base_dir,\
-         radar_list, out_file, file_type="fitacf3"\
-         ):
+
+class PrintFitRec(object):
+    """ 
+        Class to write Fit records and produce beam summary.
+        
+        Read fit level files and print the records into csv
+        Parameters
+        ----------
+        start_date : datetime
+            the start time as a datetime
+        end_date : datetime
+            the end time as a datetime
+        rad : radar code string
+            the 3 letter radar code, eg "bks"
+        out_file_dir : str
+            the txt file dir we are outputting to
+        fileType : Optional[str]
+            the filetype to read, "fitex","fitacf","lmfit", "fitacf3";
+
+        Adapted from DaViTPy
     """
-    Read fit level files and print the records into csv
-    Parameters
-    ----------
-    start_date : datetime
-        the start time as a datetime
-    base_dir : Base directory where SDARN data is stored.
-               Expect data in the format it is stored in
-               the VT SuperDARN server! eg "/sd-data/"
-               
-    end_date : datetime
-        the end time as a datetime
-    radar_list : list of radar code strings
-        the 3 letter radar code, eg "bks"
-    outfile : str
-        the txt file we are outputting to
-    fileType : Optional[str]
-        the filetype to read, "fitex","fitacf","lmfit", "fitacf3";
     
-    Adapted from DaViTPy
-    """
-    f = open(out_file, "w")
-    for _rad in radar_list:
-        print("Working through: ", _rad)
-        hdw = pydarn.read_hdw_file(_rad)
-        # get the files
-        # _flist = glob.glob(_curr_dir + loop_date.strftime("%Y%m%d") + "*")
-        reg_ex = base_dir +  "{year}/" + file_type + "/" + _rad + "/"
-        _flist = _create_files(reg_ex, start_date, end_date)
-        if len(_flist) == 0:
-            print("No files found! try another file type or date")
-            continue
-        for _f in _flist:
-            with bz2.open(_f) as fp: fitacf_stream = fp.read()
-            reader = pydarnio.SDarnRead(fitacf_stream, True)
-            records = reader.read_fitacf()
-            print("reading records from: ", _f)
-            # ok note here that I"m using the first record
-            # to calculate the fov! Need to check if this is ok?
-            # Do we do it for every record? But that slows down
-            # things considerably.
-            fov_obj = rad_fov.CalcFov(\
-                                      hdw=hdw, rsep=records[0]["rsep"],\
-                                      ngates=records[0]["nrang"], altitude=300.\
-                                     )
-            for _rec in records:
-                # sometimes there are some records without data!
-                # discard those!
-                if "slist" not in _rec: continue
-                # print all of the range gate values.
-                t = datetime.datetime(
-                    _rec["time.yr"], _rec["time.mo"],
-                    _rec["time.dy"], _rec["time.hr"],
-                    _rec["time.mt"], _rec["time.sc"]
-                )
-                f.write(t.strftime("%Y-%m-%d  "))
-                f.write(t.strftime("%H:%M:%S  "))
-                f.write(_rad + " ")
-                f.write(file_type + "\n")
-                f.write("bmnum = " + str(_rec["bmnum"]))
-                f.write("  tfreq = " + str(_rec["tfreq"]))
+    def __init__(self, rad, start_date, end_date, file_type="fitacf3", out_file_dir="/tmp/"):
+        """ Initialize all parameters """
+        self.rad = rad
+        self.start_date = start_date
+        self.end_date = end_date
+        self.file_type = file_type
+        self.io = FetchData(rad, [start_date, end_date], ftype=file_type, verbose=True)
+        self.out_file_dir = out_file_dir
+        s_params = ["bmnum", "noise.sky", "tfreq", "scan", "nrang", "noise.search",
+                    "xcf", "scan", "rsep", "frang", "channel", "cp", "intt.sc", "intt.us",
+                    "mppul", "smsep", "lagfr"]
+        v_params = ["v", "w_l", "gflg", "p_l", "slist", "pwr0", "v_e"]
+        self.beams, _ = self.io.fetch_data(s_params=s_params, v_params=v_params)
+        return
+    
+    def print_fit_record(self):
+        """
+        Print fit level records
+        """
+        fname = None
+        if self.beams is not None and len(self.beams) > 0:
+            fname = self.out_file_dir + "{rad}.{dn}.{start}.{end}.txt".format(rad=self.rad, dn=self.start_date.strftime("%Y%m%d"),
+                                                                     start=self.start_date.strftime("%H%M"), 
+                                                                              end=self.end_date.strftime("%H%M"))
+            f = open(fname, "w")
+            print("\n Working through: ", self.rad)
+            hdw = pydarn.read_hdw_file(self.rad)
+            fov_obj = rad_fov.CalcFov(hdw=hdw, rsep=self.beams[0].rsep,\
+                                      ngates=self.beams[0].nrang, altitude=300.)
+            for b in self.beams:
+                f.write(b.time.strftime("%Y-%m-%d  "))
+                f.write(b.time.strftime("%H:%M:%S  "))
+                f.write(self.rad + " ")
+                f.write(self.file_type + "\n")
+                f.write("bmnum = " + str(b.bmnum))
+                f.write("  tfreq = " + str(b.tfreq))
                 f.write("  sky_noise_lev = " +
-                        str(int(round(float(_rec["noise.sky"])))))
+                        str(round(getattr(b, "noise.sky"))))
                 f.write("  search_noise_lev = " +
-                        str(int(round(float(_rec["noise.search"])))))
-                f.write("  xcf = " + str(_rec["xcf"]))
-                f.write("  scan = " + str(+_rec["scan"]) + "\n")
-                f.write("npnts = " + str(len(_rec["slist"])))
-                f.write("  nrang = " + str(_rec["nrang"]))
-                f.write("  channel = " + str(_rec["channel"]))
-                f.write("  cpid = " + str(_rec["cp"]) + "\n")
+                        str(round(getattr(b, "noise.search"))))
+                f.write("  xcf = " + str(getattr(b, "xcf")))
+                f.write("  scan = " + str(getattr(b, "scan")) + "\n")
+                f.write("npnts = " + str(len(getattr(b, "slist"))))
+                f.write("  nrang = " + str(getattr(b, "nrang")))
+                f.write("  channel = " + str(getattr(b, "channel")))
+                f.write("  cpid = " + str(getattr(b, "cp")) + "\n")
                 
                 # Write the table column header
                 f.write("{0:>4s} {13:>5s} {1:>5s} / {2:<5s} {3:>8s} {4:>3s} "
@@ -123,9 +110,9 @@ def print_fit_record(\
                 
                 # Cycle through each range gate identified as having scatter in
                 # the slist
-                for i,s in enumerate(_rec["slist"]):
-                    lat_full = fov_obj.latFull[_rec["bmnum"]]
-                    lon_full = fov_obj.lonFull[_rec["bmnum"]]
+                for i,s in enumerate(b.slist):
+                    lat_full = fov_obj.latFull[b.bmnum]
+                    lon_full = fov_obj.lonFull[b.bmnum]
                     
                     d = geoPack.calcDistPnt(lat_full[s], lon_full[s], 300,
                                             distLat=lat_full[s + 1],
@@ -133,8 +120,8 @@ def print_fit_record(\
                                             distAlt=300)
                     gazm = d["az"]
                     # get aacgm_coords
-                    mlat, mlon, alt = aacgmv2.convert_latlon(lat_full[s],lon_full[s],300.,t,method_code="G2A")
-                    mlat2, mlon2, alt2 = aacgmv2.convert_latlon(lat_full[s+1],lon_full[s+1],300.,t,method_code="G2A")
+                    mlat, mlon, alt = aacgmv2.convert_latlon(lat_full[s],lon_full[s],300.,b.time,method_code="G2A")
+                    mlat2, mlon2, alt2 = aacgmv2.convert_latlon(lat_full[s+1],lon_full[s+1],300.,b.time,method_code="G2A")
                     d = geoPack.calcDistPnt(mlat, mlon, 300, distLat=mlat2,
                                             distLon=mlon2, distAlt=300)
                     mazm = d["az"]
@@ -142,79 +129,85 @@ def print_fit_record(\
                     f.write("{0:4d} {13:5d} {1:>5.1f} / {2:<5.1f} {3:>8.1f} "
                             "{4:>3d} {5:>8.1f} {6:>8.1f} {7:>8.2f} {8:>8.2f} "
                             "{9:>8.2f} {10:>8.2f} {11:>8.2f} {12:>8.2f}\n".
-                            format(s, _rec["pwr0"][i],
-                                   _rec["p_l"][i], _rec["v"][i],
-                                   _rec["gflg"][i], _rec["v_e"][i],
-                                   _rec["w_l"][i], lat_full[s], lon_full[s],
-                                   gazm, mlat, mlon, mazm,  _rec["frang"] +
-                                   s * _rec["rsep"]))
+                            format(s, getattr(b, "pwr0")[i],
+                                   getattr(b, "p_l")[i], getattr(b, "v")[i],
+                                   getattr(b, "gflg")[i], getattr(b, "v_e")[i],
+                                   getattr(b, "w_l")[i], lat_full[s], lon_full[s],
+                                   gazm, mlat, mlon, mazm,  getattr(b, "frang") +
+                                   s * getattr(b, "rsep")))
                 f.write("\n")
-    f.close()
-    
-def beam_summary(start_date, end_date, base_dir,\
-         rad, out_file_dir="./", file_type="fitacf", check_abnormal_scan=False, show_rec=10):
-    """ Produce beam summary for beam sounding and scann mode """
-    
-    def to_normal_scan_id(dx, key="scan"):
-        """ Convert to normal scan code """
-        sid = np.array(dx[key])
-        sid[sid!=0] = 1
-        dx[key] = sid
-        return dx
-    
-    def _estimate_scan_duration(dx):
-        """ Calculate scan durations in minutes """
-        dx = dx[dx.scan==1]
-        dx = dx[dx.bmnum==dx.bmnum.tolist()[0]]
-        sdur = (dx.time.tolist()[-1].to_pydatetime() - dx.time.tolist()[-2].to_pydatetime()).total_seconds()
-        return int( (sdur+10)/60. )
-    
-    def _estimate_themis_beam(sdur, dx):
-        """ Estimate themis mode and beam number if any """
-        th = -1 #No themis mode
-        if sdur > 1:
-            dx = dx[dx.time < dx.time.tolist()[0].to_pydatetime() + datetime.timedelta(minutes=sdur)]
-            lst = dx.bmnum.tolist()
-            th = max(set(lst), key=lst.count)
-        return th
-    
-    cols = ["time","channel","bmnum","scan","tfreq","frang","smsep","rsep","cp","nrang","mppul",
-            "lagfr","intt.sc","intt.us","noise.sky"]
-    _dict_ = {k: [] for k in cols}
-    
-    reg_ex = base_dir +  "{year}/" + file_type + "/" + rad + "/"
-    _flist = _create_files(reg_ex, start_date, end_date)
-    if len(_flist) == 0:
-        print("No files found! try another file type or date")
-        return {"rad": rad, "s_time": None, "t_beam": None, "fname": None}
-    for _f in _flist:
-        with bz2.open(_f) as fp: fitacf_stream = fp.read()
-        reader = pydarnio.SDarnRead(fitacf_stream, True)
-        records = reader.read_fitacf()
-        print("reading records from: ", _f)
-        
-        for _rec in records:
+        f.close()
+        return {"fname": fname}
+
+    def beam_summary(self, check_abnormal_scan=False, show_rec=10):
+        """ Produce beam summary for beam sounding and scann mode """
+
+        def to_normal_scan_id(dx, key="scan"):
+            """ Convert to normal scan code """
+            sid = np.array(dx[key])
+            sid[sid!=0] = 1
+            dx[key] = sid
+            return dx
+
+        def _estimate_scan_duration(dx):
+            """ Calculate scan durations in minutes """
+            dx = dx[dx.scan==1]
+            dx = dx[dx.bmnum==dx.bmnum.tolist()[0]]
+            sdur = (dx.time.tolist()[-1].to_pydatetime() - dx.time.tolist()[-2].to_pydatetime()).total_seconds()
+            return int( (sdur+10)/60. )
+
+        def _estimate_themis_beam(sdur, dx):
+            """ Estimate themis mode and beam number if any """
+            th = -1 #No themis mode
+            if sdur > 1:
+                dx = dx[dx.time < dx.time.tolist()[0].to_pydatetime() + datetime.timedelta(minutes=sdur)]
+                lst = dx.bmnum.tolist()
+                th = max(set(lst), key=lst.count)
+            return th
+
+        cols = ["time","channel","bmnum","scan","tfreq","frang","smsep","rsep","cp","nrang","mppul",
+                "lagfr","intt.sc","intt.us","noise.sky"]
+        _dict_ = {k: [] for k in cols}
+
+        for b in self.beams:
             # sometimes there are some records without data!
             # discard those!
-            if "slist" not in _rec: continue
-            t = datetime.datetime(
-                _rec["time.yr"], _rec["time.mo"],
-                _rec["time.dy"], _rec["time.hr"],
-                _rec["time.mt"], _rec["time.sc"]
-            )
-            _dict_["time"].append(t)
+            if b.slist is None or len(b.slist) == 0 : continue
+            _dict_["time"].append(b.time)
             for c in cols: 
-                if c != "time": _dict_[c].append(_rec[c])
-    d = pandas.DataFrame.from_records(_dict_)
-    print(" Data source:")
-    print(d[cols].head(show_rec))
-    if check_abnormal_scan: d = to_normal_scan_id(d, key="scan")
-    dur = _estimate_scan_duration(d)
-    print(" Summary: ", dur)
-    themis = _estimate_themis_beam(dur, d)
-    fname = out_file_dir + "{rad}.{dn}.{start}.{end}.csv".format(rad=rad, dn=start_date.strftime("%Y%m%d"),
-                                                                 start=start_date.strftime("%H%M"), end=end_date.strftime("%H%M"))
-    d[cols].to_csv(fname, header=True, index=False)
-    return {"rad": rad, "s_time": dur, "t_beam": themis, "fname": fname}
+                if c != "time": _dict_[c].append(getattr(b, c))
+        d = pandas.DataFrame.from_records(_dict_)
+        print(" Data source:")
+        print(d[cols].head(show_rec))
+        if check_abnormal_scan: d = to_normal_scan_id(d, key="scan")
+        dur = _estimate_scan_duration(d)
+        print(" Summary: ", dur)
+        themis = _estimate_themis_beam(dur, d)
+        fname = self.out_file_dir + "{rad}.{dn}.{start}.{end}.csv".format(rad=self.rad, dn=self.start_date.strftime("%Y%m%d"),
+                                                                     start=self.start_date.strftime("%H%M"), 
+                                                                          end=self.end_date.strftime("%H%M"))
+        d[cols].to_csv(fname, header=True, index=False)
+        return {"rad": self.rad, "s_time": dur, "t_beam": themis, "fname": fname}
     
     
+def fetch_print_fit_rec(rad, start_date, end_date, beam_summ=False, file_type="fitacf3", out_file_dir="/tmp/"):
+    """
+        Parameters
+        ----------
+        start_date : datetime
+            the start time as a datetime
+        end_date : datetime
+            the end time as a datetime
+        rad : radar code string
+            the 3 letter radar code, eg "bks"
+        out_file_dir : str
+            the txt file dir we are outputting to
+        fileType : Optional[str]
+            the filetype to read, "fitex","fitacf","lmfit", "fitacf3"
+        beam_summ: Optional[str]
+            Run fit rec or beam summary
+    """
+    _pfr_ = PrintFitRec(rad, start_date, end_date, file_type=file_type, out_file_dir=out_file_dir)
+    if beam_summ: _dic_ = _pfr_.beam_summary()
+    else: _dic_ = _pfr_.print_fit_record()
+    return _dic_

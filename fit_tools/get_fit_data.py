@@ -1,9 +1,38 @@
+#!/usr/bin/env python
+
+"""fit_utils.py: utility module fitacf<v> level data."""
+
+__author__ = "Chakraborty, S."
+__copyright__ = "Copyright 2020, SuperDARN@VT"
+__credits__ = []
+__license__ = "MIT"
+__version__ = "1.0."
+__maintainer__ = "Chakraborty, S."
+__email__ = "shibaji7@vt.edu"
+__status__ = "Research"
+
 import numpy as np
 import pandas as pd
 import datetime as dt
 import glob
 import bz2
 import pydarnio as pydarn
+
+class Gate(object):
+    """Class object to hold each range cell value"""
+
+    def __init__(self, bm, i, params=["v", "w_l", "gflg", "p_l", "v_e"], gflg_type=-1):
+        """
+        initialize the parameters which will be stored
+        bm: beam object
+        i: index to store
+        params: parameters to store
+        """
+        for p in params:
+            if len(getattr(bm, p)) > i : setattr(self, p, getattr(bm, p)[i])
+            else: setattr(self, p, np.nan)
+        if gflg_type >= 0 and len(getattr(bm, "gsflg")[gflg_type]) > 0: setattr(self, "gflg", getattr(bm, "gsflg")[gflg_type][i])
+        return
 
 class Beam(object):
     """Class to hold one beam object"""
@@ -178,7 +207,7 @@ class FetchData(object):
     
     def fetch_data(self, s_params=["bmnum", "noise.sky", "tfreq", "scan", "nrang", "intt.sc", "intt.us",\
             "mppul", "nrang", "rsep", "cp", "frang", "smsep", "lagfr", "channel"],
-            v_params=["v", "w_l", "gflg", "p_l", "slist"],
+            v_params=["v", "w_l", "gflg", "p_l", "slist", "v_e"],
             by="beam", scan_prop={"dur": 1, "stype": "normal"}):
         """
         Fetch data from file list and return the dataset
