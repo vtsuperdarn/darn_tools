@@ -105,20 +105,26 @@ def save_to_netcdf(fname, scans, th=np.nan):
                 ["LoS Velocity (+ve: towards the radar, -ve: away from radar)", "LoS Width",
                         "GS Flag", "LoS Power", "Gate"]
     if scans is not None:
-        _u = {key: [] for key in v_params + s_params}
-        slist = []
-        t = []
-        blen, glen = 0, 110
-        for fscan in scans:
-            blen += len(fscan.beams)
-            for b in fscan.beams:
-                t.append(b.time)
-                l = len(getattr(b, "slist"))
-                slist.append(getattr(b, "slist"))
-                for p in v_params:
-                    _u[p].extend(getattr(b, p))
-                for p in s_params:
-                    _u[p].append(getattr(b, p))
+        blen, glen, slen = len(scans[0].beams), 110, len(scans)
+        _scaler = {key: np.empty((slen,blen)) for key in s_params}
+        _vector = {key: np.empty((slen,blen,glen)) for key in v_params}
+        timex = np.empty((slen,blen))
+        timex[:] = np.nan
+        
+        for p in s_params:
+            _scaler[p][:] = np.nan
+            for i, fscan in enumerate(scans):
+                for j, b in enumerate(fscan.beams):
+                    if p=="bmnum": timex[i, j] = date2num(getattr(b, "time"),units="hours since 1970-01-01 00:00:00.0",calendar="julian")
+                    _scaler[p][i,j] = getattr(b, p)
+                    
+        for p in v_params:
+            _vector[p][:] = np.nan
+            for i, fscan in enumerate(scans):
+                for j, b in enumerate(fscan.beams):
+                    slist = getattr(b, "slist")
+                    _vector[p][i,j,slist] = getattr(b, p)
+                    
         
         rootgrp = Dataset(fname, "w", format="NETCDF4")
         rootgrp.description = """
@@ -129,27 +135,26 @@ def save_to_netcdf(fname, scans, th=np.nan):
         rootgrp.source = "SuperDARN - SD data processing: Median filter"
         rootgrp.createDimension("nbeam", blen)
         rootgrp.createDimension("ngate", glen)
+        rootgrp.createDimension("nscan", slen)
         beam = rootgrp.createVariable("nbeam","i1",("nbeam",))
         gate = rootgrp.createVariable("ngate","i1",("ngate",))
-        beam[:], gate[:] = range(blen), range(glen)
-        times = rootgrp.createVariable("time", "f8", ("nbeam",))
+        scns = rootgrp.createVariable("nscan","i1",("nscan",))
+        beam[:], gate[:], scns[:] = range(scans[0].beams[0].bmnum, scans[0].beams[-1].bmnum+1), range(glen), range(slen)
+        
+        times = rootgrp.createVariable("time", "f8", ("nscan", "nbeam",))
         times.units = "hours since 1970-01-01 00:00:00.0"
         times.calendar = "julian"
-        times[:] = date2num(t,units=times.units,calendar=times.calendar)
+        times[:] = timex
         
         for _i, k in enumerate(s_params):
-            tmp = rootgrp.createVariable(k, type_params[_i],("nbeam",))
+            tmp = rootgrp.createVariable(k, type_params[_i],("nscan", "nbeam",))
             tmp.description = sdesc_params[_i]
-            tmp[:] = np.array(_u[k])
+            tmp[:] = np.array(_scaler[k])
         
         for _i, k in enumerate(v_params):
-            tmp = rootgrp.createVariable(k, "f4", ("nbeam", "ngate"))
+            tmp = rootgrp.createVariable(k, "f4", ("nscan", "nbeam", "ngate"))
             tmp.description = vdesc_params[_i]
-            _m = np.empty((blen,glen))
-            _m[:], x = np.nan, _u[k]
-            for _j in range(blen):
-                _m[_j,slist[_j]] = np.array(x[_j])
-            tmp[:] = np.ma.masked_invalid(_m)
+            tmp[:] = np.array(_vector[k])
         rootgrp.close()
     return
 
