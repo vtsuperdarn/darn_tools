@@ -277,6 +277,7 @@ def doAJFilter(rad, start_date, end_date, file_type="fitacf", out_file_dir="/tmp
     fscans = []
     ajfilter = Filter(thresh=thresh)
     for i in range(1,len(scans)-2):
+        print(" Time:", scans[i].stime)
         i_scans = scans[i-1:i+2]
         fscans.append(ajfilter.doAJFilter(i_scans, comb=True))
     fname = out_file_dir + "medfilt.{rad}.{start}.{end}.csv".format(rad=rad, start=start_date.strftime("%Y%m%d-%H%M"),

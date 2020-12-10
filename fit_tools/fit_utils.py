@@ -106,6 +106,7 @@ def save_to_netcdf(fname, scans, th=np.nan):
                         "GS Flag", "LoS Power", "Gate"]
     if scans is not None:
         _u = {key: [] for key in v_params + s_params}
+        slist = []
         t = []
         blen, glen = 0, 110
         for fscan in scans:
@@ -113,6 +114,7 @@ def save_to_netcdf(fname, scans, th=np.nan):
             for b in fscan.beams:
                 t.append(b.time)
                 l = len(getattr(b, "slist"))
+                slist.append(getattr(b, "slist"))
                 for p in v_params:
                     _u[p].extend(getattr(b, p))
                 for p in s_params:
@@ -140,15 +142,14 @@ def save_to_netcdf(fname, scans, th=np.nan):
             tmp.description = sdesc_params[_i]
             tmp[:] = np.array(_u[k])
         
-        _g = _u["slist"]
         for _i, k in enumerate(v_params):
             tmp = rootgrp.createVariable(k, "f4", ("nbeam", "ngate"))
             tmp.description = vdesc_params[_i]
             _m = np.empty((blen,glen))
             _m[:], x = np.nan, _u[k]
             for _j in range(blen):
-                _m[_j,_g[_j]] = np.array(x[_j])
-            tmp[:] = _m
+                _m[_j,slist[_j]] = np.array(x[_j])
+            tmp[:] = np.ma.masked_invalid(_m)
         rootgrp.close()
     return
 
