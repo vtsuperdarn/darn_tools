@@ -1,9 +1,6 @@
 # standard libs
 import bz2
-import glob
 import datetime
-import sys
-import csv
 # SD libs
 import pydarnio
 import pandas
@@ -120,13 +117,14 @@ class ReadGrdData(object):
                     print("No records-->", _stime)
                 else:
                     for _ind, _mlat in enumerate(_recs['vector.mlat']):
-                            outf.write("{0:>4s} {1:>5s} {2:>5s} {3:<5s} {4:>8s} {5:>3s} "
-                                "{6:>8s} {7:>8s} {8:>8s} {9:>8s} {10:>8s} {11:>8s}\n".
-                                    format(str(_mlat), str(_recs["vector.mlon"]), str(_recs["vector.kvect"]),\
-                                   str(_recs["vector.stid"]), str(_recs["vector.channel"]), str(_recs["vector.index"]),\
-                                   str(_recs["vector.vel.median"]), str(_recs["vector.vel.sd"]),\
-                                   str(_recs["vector.pwr.median"]), str(_recs["vector.pwr.sd"]),\
-                                   str(_recs["vector.wdt.median"]), str(_recs["vector.wdt.sd"])))
+                            outf.write("{0:>5s} {1:>5s} {2:>5s} {3:<5s} {4:>5s} {5:>5s} "
+                                "{6:>5s} {7:>5s} {8:>5s} {9:>5s} {10:>5s} {11:>5s}\n".
+                                    format(str(_mlat), str(_recs["vector.mlon"]), str(_recs["vector.kvect"][_ind]),\
+                                   str(_recs["vector.stid"][_ind]), str(_recs["vector.channel"][_ind]),\
+                                   str(_recs["vector.index"][_ind]),str(_recs["vector.vel.median"][_ind]),\
+                                   str(_recs["vector.vel.sd"][_ind]), str(_recs["vector.pwr.median"][_ind]),\
+                                   str(_recs["vector.pwr.sd"][_ind]), str(_recs["vector.wdt.median"][_ind]),\
+                                   str(_recs["vector.wdt.sd"][_ind])))
                             outf.write("\n")
 
                 outf.write("***********************Data Records*********************** \n")
@@ -138,7 +136,7 @@ class ReadGrdData(object):
         
 if __name__ == "__main__":
     start_date = datetime.datetime(2017,5,26)
-    end_date = datetime.datetime(2017,5,26)
+    end_date = datetime.datetime(2017,5,31)
     hemi = ["north", "south"]
     grd_obj = ReadGrdData(start_date, end_date, hemi=hemi, out_dir="./")
     grd_obj.save_to_ascii()
