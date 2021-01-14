@@ -80,17 +80,17 @@ class ReadGrdData(object):
                 outf.write("***********************Data Summary*********************** \n")
                                
                 # Write the column header
-                outf.write("{0:>5s} {1:>5s} {2:>5s} {3:<5s} {4:>5s} {5:>5s} "
-                        "{6:>5s} {7:>5s} {8:>5s} {9:>5s} {10:>5s} {11:>5s} "
+                outf.write("{0:>5s} {1:>5s} {2:>5s} {3:>10s} {4:>5s} {5:>5s} "
+                        "{6:>5s} {7:>9s} {8:>10s} {9:>9s} {10:>5s} {11:>5s} "
                         "{12:>5s} {13:>5s} {14:>5s} {15:>5s} {16:>5s} {17:>5s}\n".
                         format("stid", "channel", "nvec", "freq", "major.revision", "minor.revision",
                                "program.id", "noise.mean", "noise.sd", "gsct",
                                "v.min", "v.max", "p.min", "p.max", "w.min", "w.max", "ve.min", "ve.max"))
                 
                 for _ind, _st in enumerate(_recs['stid']):
-                    outf.write("{0:>4s} {1:>5s} {2:>5s} {3:<5s} {4:>8s} {5:>3s} "
-                        "{6:>8s} {7:>8s} {8:>8s} {9:>8s} {10:>8s} {11:>8s} "
-                        "{12:>8s} {13:>8s} {14:>8s} {15:>8s} {16:>8s} {17:>8s}\n".
+                    outf.write("{0:>5s} {1:>5s} {2:>5s} {3:>10s} {4:>5s} {5:>5s} "
+                        "{6:>5s} {7:>9s} {8:>10s} {9:>9s} {10:>5s} {11:>5s} "
+                        "{12:>5s} {13:>5s} {14:>5s} {15:>5s} {16:>5s} {17:>5s}\n".
                             format(str(_st), str(_recs["channel"][_ind]), str(_recs["nvec"][_ind]),\
                            str(_recs["freq"][_ind]),str(_recs["major.revision"][_ind]),\
                            str(_recs["minor.revision"][_ind]), str(_recs["program.id"][_ind]),\
@@ -105,8 +105,8 @@ class ReadGrdData(object):
                 
                 outf.write("***********************Data Records*********************** \n")
                 # Write the column header
-                outf.write("{0:>5s} {1:>5s} {2:>5s} {3:<5s} {4:>5s} {5:>5s} "
-                        "{6:>5s} {7:>5s} {8:>5s} {9:>5s} {10:>5s} {11:>5s}\n".
+                outf.write("{0:>5s} {1:>10s} {2:>11s} {3:>5s} {4:>5s} {5:>5s} "
+                                "{6:>11s} {7:>11s} {8:>10s} {9:>10s} {10:>10s} {11:>10s}\n".
                         format("mlat", "mlon", "kvect",\
                                "stid", "channel", "index",\
                                "vel.median", "vel.sd",\
@@ -117,9 +117,9 @@ class ReadGrdData(object):
                     print("No records-->", _stime)
                 else:
                     for _ind, _mlat in enumerate(_recs['vector.mlat']):
-                            outf.write("{0:>5s} {1:>5s} {2:>5s} {3:<5s} {4:>5s} {5:>5s} "
-                                "{6:>5s} {7:>5s} {8:>5s} {9:>5s} {10:>5s} {11:>5s}\n".
-                                    format(str(_mlat), str(_recs["vector.mlon"]), str(_recs["vector.kvect"][_ind]),\
+                            outf.write("{0:>5s} {1:>10s} {2:>11s} {3:>5s} {4:>5s} {5:>5s} "
+                                "{6:>11s} {7:>11s} {8:>10s} {9:>10s} {10:>10s} {11:>10s}\n".
+                                    format(str(_mlat), str(_recs["vector.mlon"][_ind]), str(_recs["vector.kvect"][_ind]),\
                                    str(_recs["vector.stid"][_ind]), str(_recs["vector.channel"][_ind]),\
                                    str(_recs["vector.index"][_ind]),str(_recs["vector.vel.median"][_ind]),\
                                    str(_recs["vector.vel.sd"][_ind]), str(_recs["vector.pwr.median"][_ind]),\
