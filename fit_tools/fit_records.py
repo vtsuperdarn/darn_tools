@@ -171,7 +171,7 @@ class PrintFitRec(object):
             return th
 
         cols = ["time","channel","bmnum","scan","tfreq","frang","smsep","rsep","cp","nrang","mppul",
-                "lagfr","intt.sc","intt.us","noise.sky"]
+                "lagfr","intt.sc","intt.us","noise.sky","npts"]
         _dict_ = {k: [] for k in cols}
 
         for b in self.beams:
@@ -179,8 +179,9 @@ class PrintFitRec(object):
             # discard those!
             if b.slist is None or len(b.slist) == 0 : continue
             _dict_["time"].append(b.time)
+            _dict_["npts"].append(len(getattr(b, "slist")))
             for c in cols: 
-                if c != "time": _dict_[c].append(getattr(b, c))
+                if c != "time" and c!="npts": _dict_[c].append(getattr(b, c))
         d = pandas.DataFrame.from_records(_dict_)
         print(" Data source:")
         print(d[cols].head(show_rec))
@@ -199,7 +200,7 @@ class PrintFitRec(object):
             f.write("%6s"%"cp  ")
             f.write("nrang  mppul  lagfr  intt_sc  ")
             f.write("%7s"%"intt_us  ")
-            f.write("sky_noise\n")
+            f.write("sky_noise  npts\n")
             for i in range(len(d)):
                 x = d.iloc[[i]]
                 f.write(x["time"].tolist()[0].strftime("%Y-%m-%d  %H:%M:%S.%f"))
@@ -207,11 +208,11 @@ class PrintFitRec(object):
                         format(x["channel"].tolist()[0], x["bmnum"].tolist()[0],
                                x["scan"].tolist()[0], x["frang"].tolist()[0],
                                x["smsep"].tolist()[0], x["rsep"].tolist()[0]))
-                f.write("{:5d}  {:5d}  {:5d}  {:6d}  {:6d}  {:8d}  {:9.1f}".
+                f.write("{:5d}  {:5d}  {:5d}  {:6d}  {:6d}  {:8d}  {:9.1f}  {:4d}".
                         format(x["cp"].tolist()[0], x["nrang"].tolist()[0],
                                x["mppul"].tolist()[0], x["lagfr"].tolist()[0],
                                x["intt.sc"].tolist()[0], x["intt.us"].tolist()[0],
-                               x["noise.sky"].tolist()[0]))
+                               x["noise.sky"].tolist()[0], x["npts"].tolist()[0]))
                 f.write("\n")
                 pass
         return {"rad": self.rad, "s_time": dur, "t_beam": themis, "fname": fname, "pd": d[cols]}

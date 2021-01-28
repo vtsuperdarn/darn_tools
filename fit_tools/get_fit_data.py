@@ -198,6 +198,7 @@ class FetchData(object):
                 _o[p].extend(getattr(b, p))
             for p in s_params:
                 _o[p].extend([getattr(b, p)]*l)
+            _o["npts"].extend([l]*l)
         L = len(_o["slist"])
         for p in s_params+v_params:
             if len(_o[p]) < L:
