@@ -27,7 +27,9 @@ import aacgmv2
 # Data Analysis libs
 import pandas
 import numpy
-# plotting libs
+# main parser libs
+import argparse
+from dateutil import parser as prs
 
 from get_fit_data import FetchData
 
@@ -53,12 +55,13 @@ class PrintFitRec(object):
         Adapted from DaViTPy
     """
     
-    def __init__(self, rad, start_date, end_date, file_type="fitacf3", out_file_dir="/tmp/"):
+    def __init__(self, rad, start_date, end_date, fname, file_type="fitacf3", out_file_dir="/tmp/"):
         """ Initialize all parameters """
         self.rad = rad
         self.start_date = start_date
         self.end_date = end_date
         self.file_type = file_type
+        self.fname = fname
         self.io = FetchData(rad, [start_date, end_date], ftype=file_type, verbose=True)
         self.out_file_dir = out_file_dir
         s_params = ["bmnum", "noise.sky", "tfreq", "scan", "nrang", "noise.search",
@@ -74,9 +77,11 @@ class PrintFitRec(object):
         """
         fname = None
         if self.beams is not None and len(self.beams) > 0:
-            fname = self.out_file_dir + "{rad}.{dn}.{start}.{end}.txt".format(rad=self.rad, dn=self.start_date.strftime("%Y%m%d"),
-                                                                     start=self.start_date.strftime("%H%M"), 
-                                                                              end=self.end_date.strftime("%H%M"))
+            if self.fname: fname = self.fname
+            else: fname = self.out_file_dir + "{rad}.{dn}.{start}.{end}.txt".format(rad=self.rad, 
+                                                                                    dn=self.start_date.strftime("%Y%m%d"),
+                                                                                    start=self.start_date.strftime("%H%M"), 
+                                                                                    end=self.end_date.strftime("%H%M"))
             f = open(fname, "w")
             print("\n Working through: ", self.rad)
             hdw = pydarn.read_hdw_file(self.rad)
@@ -136,7 +141,7 @@ class PrintFitRec(object):
                                    gazm, mlat, mlon, mazm,  getattr(b, "frang") +
                                    s * getattr(b, "rsep")))
                 f.write("\n")
-        f.close()
+            f.close()
         return {"fname": fname}
 
     def beam_summary(self, check_abnormal_scan=False, show_rec=10):
@@ -183,14 +188,36 @@ class PrintFitRec(object):
         dur = _estimate_scan_duration(d)
         print(" Summary: ", dur)
         themis = _estimate_themis_beam(dur, d)
-        fname = self.out_file_dir + "{rad}.{dn}.{start}.{end}.csv".format(rad=self.rad, dn=self.start_date.strftime("%Y%m%d"),
-                                                                     start=self.start_date.strftime("%H%M"), 
-                                                                          end=self.end_date.strftime("%H%M"))
-        d[cols].to_csv(fname, header=True, index=False)
-        return {"rad": self.rad, "s_time": dur, "t_beam": themis, "fname": fname}
+        if self.fname: fname = self.fname
+        else: fname = self.out_file_dir + "{rad}.{dn}.{start}.{end}.csv".format(rad=self.rad,
+                                                                                dn=self.start_date.strftime("%Y%m%d"),
+                                                                                start=self.start_date.strftime("%H%M"), 
+                                                                                end=self.end_date.strftime("%H%M"))
+        with open(fname, "w") as f:
+            f.write("%28s"%"time  ")
+            f.write("channel  bmnum  scan  frang  smsep  rsep  ")
+            f.write("%6s"%"cp  ")
+            f.write("nrang  mppul  lagfr  intt_sc  ")
+            f.write("%7s"%"intt_us  ")
+            f.write("sky_noise\n")
+            for i in range(len(d)):
+                x = d.iloc[[i]]
+                f.write(x["time"].tolist()[0].strftime("%Y-%m-%d  %H:%M:%S.%f"))
+                f.write("{:7d}  {:5d}  {:4d}  {:5d}  {:5d}  {:4d} ".
+                        format(x["channel"].tolist()[0], x["bmnum"].tolist()[0],
+                               x["scan"].tolist()[0], x["frang"].tolist()[0],
+                               x["smsep"].tolist()[0], x["rsep"].tolist()[0]))
+                f.write("{:5d}  {:5d}  {:5d}  {:6d}  {:6d}  {:8d}  {:9.1f}".
+                        format(x["cp"].tolist()[0], x["nrang"].tolist()[0],
+                               x["mppul"].tolist()[0], x["lagfr"].tolist()[0],
+                               x["intt.sc"].tolist()[0], x["intt.us"].tolist()[0],
+                               x["noise.sky"].tolist()[0]))
+                f.write("\n")
+                pass
+        return {"rad": self.rad, "s_time": dur, "t_beam": themis, "fname": fname, "pd": d[cols]}
     
     
-def fetch_print_fit_rec(rad, start_date, end_date, beam_summ=False, file_type="fitacf3", out_file_dir="/tmp/"):
+def fetch_print_fit_rec(rad, start_date, end_date, fname, beam_summ=False, file_type="fitacf3", out_file_dir="/tmp/"):
     """
         Parameters
         ----------
@@ -207,7 +234,22 @@ def fetch_print_fit_rec(rad, start_date, end_date, beam_summ=False, file_type="f
         beam_summ: Optional[str]
             Run fit rec or beam summary
     """
-    _pfr_ = PrintFitRec(rad, start_date, end_date, file_type=file_type, out_file_dir=out_file_dir)
+    _pfr_ = PrintFitRec(rad, start_date, end_date, fname, file_type=file_type, out_file_dir=out_file_dir)
     if beam_summ: _dic_ = _pfr_.beam_summary()
     else: _dic_ = _pfr_.print_fit_record()
     return _dic_
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--rad", type=str)
+    parser.add_argument("-s", "--start", type=prs.parse)
+    parser.add_argument("-e", "--end", type=prs.parse)
+    parser.add_argument("-f", "--fname", type=str)
+    parser.add_argument("-sm", "--summ", type=int)
+    parser.add_argument("-ft", "--ftype", type=str)
+    args = parser.parse_args()
+    for k in vars(args).keys():
+        print("     ", k, "->", vars(args)[k])
+    fetch_print_fit_rec(args.rad, args.start, args.end, args.fname, beam_summ=bool(args.summ),
+                        file_type=args.ftype, out_file_dir="/tmp/")
+    pass
