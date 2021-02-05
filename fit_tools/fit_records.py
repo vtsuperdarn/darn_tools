@@ -194,11 +194,30 @@ class PrintFitRec(object):
                                                                                 dn=self.start_date.strftime("%Y%m%d"),
                                                                                 start=self.start_date.strftime("%H%M"), 
                                                                                 end=self.end_date.strftime("%H%M"))
+        header =\
+                "##############################################################################\n"\
+                "# time              = Beam sounding start time\n"\
+                "# channel           = Channel of the radar which made the measurement\n"\
+                "# bmnum             = Beam number\n"\
+                "# scan              = Scan flag (indicate start of a scan)\n"\
+                "# frang             = First range of the radar"\
+                "# smsep             = \n"\
+                "# rsep              = Range seperation\n"\
+                "# cp                = Control program of the radar\n"\
+                "# nrang             = Number of range gates\n"\
+                "# mppul             = Number of pulses\n"\
+                "# lagfr             = Lag to first range gate\n"\
+                "# intt_sc           = Integration time (seconds)\n"\
+                "# intt_us           = Integration time (micro seconds)\n"\
+                "# sky_noise         = Background sky noise\n"\
+                "# npts              = Number of backscatter echoes in each beam sounding\n"\
+                "##############################################################################\n"
         with open(fname, "w") as f:
+            f.write(header)
             f.write("%28s"%"time  ")
             f.write("channel  bmnum  scan  frang  smsep  rsep  ")
             f.write("%6s"%"cp  ")
-            f.write("nrang  mppul  lagfr  intt_sc  ")
+            f.write("nrang  mppul   lagfr  intt_sc  ")
             f.write("%7s"%"intt_us  ")
             f.write("sky_noise  npts\n")
             for i in range(len(d)):
@@ -208,7 +227,7 @@ class PrintFitRec(object):
                         format(x["channel"].tolist()[0], x["bmnum"].tolist()[0],
                                x["scan"].tolist()[0], x["frang"].tolist()[0],
                                x["smsep"].tolist()[0], x["rsep"].tolist()[0]))
-                f.write("{:5d}  {:5d}  {:5d}  {:6d}  {:6d}  {:8d}  {:9.1f}  {:4d}".
+                f.write("{:6d}  {:5d}  {:5d}  {:6d}  {:6d}  {:7d}  {:9.1f}  {:4d}".
                         format(x["cp"].tolist()[0], x["nrang"].tolist()[0],
                                x["mppul"].tolist()[0], x["lagfr"].tolist()[0],
                                x["intt.sc"].tolist()[0], x["intt.us"].tolist()[0],

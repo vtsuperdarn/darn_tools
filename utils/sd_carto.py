@@ -14,6 +14,7 @@ __status__ = "Research"
 import matplotlib
 matplotlib.use("Agg")
 import numpy as np
+import matplotlib.pyplot as plt 
 
 import cartopy
 from cartopy.mpl.geoaxes import GeoAxes
@@ -265,59 +266,3 @@ class SDCarto(GeoAxes):
             self.text( locs.bounds[0],locs.bounds[1], marker_text, ha=ha, va=va)
 
 register_projection(SDCarto)
-
-
-class RangeTimeIntervalPlot(object):
-    """
-    Create plots for velocity, width, power, elevation angle, etc.
-    """
-    
-    def __init__(self, nrang, unique_times, fig_title="", num_subplots=3):
-        self.nrang = nrang
-        self.unique_gates = np.linspace(1, nrang, nrang)
-        self.unique_times = unique_times
-        self.num_subplots = num_subplots
-        self._num_subplots_created = 0
-        self.fig = plt.figure(figsize=(8, 3*num_subplots), dpi=100) # Size for website
-        plt.suptitle(fig_title, x=0.075, y=0.99, ha='left', fontweight='bold', fontsize=15)
-        mpl.rcParams.update({'font.size': 10})
-        return
-    
-    def addPlot(self, data_dict, beam, title, vel_max=200, vel_step=25, xlabel='Time UT'):
-        # add new axis
-        self.vel_ax = self._add_axis()
-        # set up variables for plotter
-        time = np.hstack(data_dict['time'])
-        gate = np.hstack(data_dict['gate'])
-        allbeam = np.hstack(data_dict['beam'])
-        flags = np.hstack(data_dict['vel'])
-        bounds = list(range(-vel_max, vel_max+1, vel_step))
-        cmap = plt.cm.jet
-        mask = allbeam == beam
-        self._create_colormesh(self.vel_ax, time, gate, flags, mask, bounds, cmap, xlabel)
-        self._tight_layout()    # need to do this before adding the colorbar, because it depends on the axis position
-        self._add_colorbar(self.fig, self.vel_ax, bounds, cmap, label='Velocity [m/s]')
-        self.vel_ax.set_title(title, loc='left', fontdict={'fontweight': 'bold'})
-        return
-    
-    def _add_axis(self):
-        self._num_subplots_created += 1
-        ax = self.fig.add_subplot(self.num_subplots, 1, self._num_subplots_created)
-        return ax
-    
-    def _add_colorbar(self, fig, ax, bounds, colormap, label=''):
-        """
-        Add a colorbar to the right of an axis.
-        """
-        import matplotlib as mpl
-        pos = ax.get_position()
-        cpos = [pos.x1 + 0.025, pos.y0 + 0.0125,
-                0.015, pos.height * 0.9]                # this list defines (left, bottom, width, height
-        cax = fig.add_axes(cpos)
-        norm = mpl.colors.BoundaryNorm(bounds, colormap.N)
-        cb2 = mpl.colorbar.ColorbarBase(cax, cmap=colormap,
-                                        norm=norm,
-                                        ticks=bounds,
-                                        spacing='uniform',
-                                        orientation='vertical')
-        cb2.set_label(label)

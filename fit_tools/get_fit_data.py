@@ -192,6 +192,7 @@ class FetchData(object):
         Convert the beam data into dataframe
         """
         _o = dict(zip(s_params+v_params, ([] for _ in s_params+v_params)))
+        _o["npts"] = []
         for b in beams:
             l = len(getattr(b, "slist"))
             for p in v_params:
@@ -200,7 +201,7 @@ class FetchData(object):
                 _o[p].extend([getattr(b, p)]*l)
             _o["npts"].extend([l]*l)
         L = len(_o["slist"])
-        for p in s_params+v_params:
+        for p in s_params+v_params+["npts"]:
             if len(_o[p]) < L:
                 l = len(_o[p])
                 _o[p].extend([np.nan]*(L-l))
